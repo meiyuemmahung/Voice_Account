@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Document</title>
+    <style>
+        @import url(https://fonts.googleapis.com/earlyaccess/cwtexyen.css);
+
+        body {
+            background-color: #E4DFD1;
+            color: #1E1E1E;
+            font-family: "cwTeXYen", "Helvetica", "Arial", "LiHei Pro", "黑體-繁", "微軟正黑體", sans-serif;
+            max-width: 100%; /* 或其他適當的值 */
+            overflow-x: hidden; 
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+
+        #date-picker-container {
+            margin-bottom: 20px;
+        }
+
+        #chart-container {
+            text-align: center;
+        }
+
+        #legend-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        .legend-item span {
+            margin-left: 5px;
+        }
+
+        #day-total-amount {
+            font-size: 24px;
+            /*margin-top: 20px;*/
+        }
+        
+
+        .calendar {
+          width: 375px;
+          margin: 20px auto;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          padding: 10px;
+          background-color: #f7f7f7;
+        }
+
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+
+        .days-of-week {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          font-weight: bold;
+        }
+
+        .days-of-week div {
+          width: calc(100% / 7);
+          text-align: center;
+          padding: 5px;
+        }
+
+        .days {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 5px;
+        }
+
+        .day {
+          border: 1px solid #ccc;
+          padding: 10px;
+          text-align: center;
+          background-color: #fff;
+          border-radius: 5px;
+          cursor: pointer;
+        }
+
+        .current-date {
+          background-color: #ffcc00;
+        }
+
+        .current-time {
+          margin-top: 10px;
+          font-size: 18px;
+        }
+
+        .selected-date {
+          border: 2px solid #ffcc00;
+          border-radius: 5px;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <div class="row">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="/bootstrap_index">{{ username }}</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="切換導覽">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item active">
+                            <a class="nav-link" href="/bootstrap_index">首頁 </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/pie_result">報表</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/overview">總覽</a>
+                        </li>
+                        <li class="nav-item">
+                          <a class="nav-link" href="/line_result">花費趨勢</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="logout()">登出</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+
+
+    <div class="container d-flex justify-content-center mt-3">
+      <div class="calendar card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+              <button id="prevBtn" class="btn btn-secondary">&lt;</button>
+              <h2 id="monthYear" class="mb-0"></h2>
+              <button id="nextBtn" class="btn btn-secondary">&gt;</button>
+          </div>
+          <div class="card-body">
+              <div class="days-of-week">
+                  <div class="day">日</div>
+                  <div class="day">一</div>
+                  <div class="day">二</div>
+                  <div class="day">三</div>
+                  <div class="day">四</div>
+                  <div class="day">五</div>
+                  <div class="day">六</div>
+              </div>
+              <div class="days" id="calendarDays"></div>
+          </div>
+          <div class="card-footer text-muted">
+              現在時間: <span id="currentTime"></span>
+          </div>
+      </div>
+  </div>
+  
+  <div class="container" id="container">
+    <div class="row">
+        <div class="col-12">
+            <div id="day-total-amount">當日花費: </div>
+        </div>
+    </div>
+</div>
+<div class="container mt-3" id="item-list-container">
+    <!-- 這裡將呈現品項類別和花費的卡片 -->
+</div>
+    <script>
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const monthYear = document.getElementById('monthYear');
+        const daysContainer = document.querySelector('.days');
+        const currentTime = document.getElementById('currentTime');
+
+        let currentDate = new Date();
+
+        function renderCalendar() {
+          const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+          const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+          const totalDays = lastDayOfMonth.getDate();
+          const firstDayOfWeek = firstDayOfMonth.getDay();
+
+          monthYear.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${currentDate.getFullYear()}`;
+
+          daysContainer.innerHTML = '';
+
+          for (let i = 0; i < firstDayOfWeek; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.classList.add('day');
+            daysContainer.appendChild(emptyDay);
+          }
+
+          for (let i = 1; i <= totalDays; i++) {
+            // 使用立即執行函數以保持 i 的值在函數範圍內
+            (function (dayNumber) {
+              const day = document.createElement('div');
+              day.textContent = dayNumber;
+              day.classList.add('day');
+              day.setAttribute('data-day', dayNumber); // 添加 data-day 屬性
+              day.addEventListener('click', () => handleDayClick(dayNumber));
+
+              // 只有當月的當日才添加 current-date 類別
+              const currentDateCopy = new Date(currentDate);
+              currentDateCopy.setDate(1); // 先將日期設為該月的第一天，以避免月份不同的情況
+              if (dayNumber === currentDate.getDate() && currentDateCopy.getMonth() === currentDate.getMonth()) {
+                day.classList.add('current-date');
+              }
+
+              daysContainer.appendChild(day);
+            })(i);
+          }
+
+
+          const now = new Date();
+          const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+          currentTime.textContent = timeString;
+        }
+
+        renderCalendar();
+
+        prevBtn.addEventListener('click', () => {
+          currentDate.setMonth(currentDate.getMonth() - 1);
+          renderCalendar();
+        });
+
+        nextBtn.addEventListener('click', () => {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          renderCalendar();
+        });
+
+        function handleDayClick(selectedDay) {
+          const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay);
+          const year = selectedDate.getFullYear();
+          const month = selectedDate.getMonth() + 1; // 月份是從0開始的，需要加1
+          const day = selectedDate.getDate();
+
+          // 重置先前選定的日期樣式
+          const allDays = document.querySelectorAll('.day');
+          allDays.forEach((day) => {
+            day.classList.remove('selected-date');
+          });
+
+          // 將選定日期的樣式更改為突顯
+          const selectedDayElement = document.querySelector(`.day[data-day="${selectedDay}"]`);
+          if (selectedDayElement) {
+            selectedDayElement.classList.add('selected-date');
+          }
+          console.log(year);
+          console.log(month);
+          console.log(day);
+          // 將所選日期發送到後端
+          sendSelectedDateToBackend(year, month, day);
+        }
+
+        const categoryMapping = {
+    0: '食',
+    1: '衣',
+    2: '住',
+    3: '行',
+    4: '育',
+    5: '樂',
+    6: '其他',
+};
+
+// ...
+
+async function sendSelectedDateToBackend(year, month, day) {
+    try {
+        const response = await fetch('/overview_item', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ year, month, day }),
+        });
+
+        const result = await response.json();
+
+        // 清空之前的卡片區域內容
+        const itemListContainer = document.getElementById('item-list-container');
+        itemListContainer.innerHTML = '';
+
+        if (result.length > 0) {
+            // 使用物件來按類別分組細項
+            const categoryGroups = {};
+
+            result.forEach(item => {
+                const categoryName = categoryMapping[item.type];
+                if (!categoryGroups[categoryName]) {
+                    categoryGroups[categoryName] = [];
+                }
+                categoryGroups[categoryName].push(item);
+            });
+
+            // 按照食衣住行育樂其他的順序排序類別
+            const sortedCategories = ['食', '衣', '住', '行', '育', '樂', '其他'];
+
+            // 迭代排序後的類別
+            sortedCategories.forEach(categoryName => {
+                const categoryGroup = categoryGroups[categoryName];
+                
+                // 如果有類別對應的數據，則創建卡片元素
+                if (categoryGroup) {
+                    const card = document.createElement('div');
+                    card.classList.add('card', 'mb-3');
+
+                    const cardBody = document.createElement('div');
+                    cardBody.classList.add('card-body');
+
+                    const itemType = document.createElement('h5');
+                    itemType.classList.add('card-title');
+                    itemType.textContent = categoryName;
+
+                    cardBody.appendChild(itemType);
+
+                    // 迭代同一類別的不同細項
+                    categoryGroup.forEach(item => {
+                        const itemDetails = document.createElement('p');
+                        itemDetails.classList.add('card-text');
+                        itemDetails.textContent = `${item.item_name}, 花費：${item.money} 元`;
+                        cardBody.appendChild(itemDetails);
+                    });
+
+                    card.appendChild(cardBody);
+
+                    itemListContainer.appendChild(card);
+                }
+            });
+
+            // 計算並更新總花費
+            const totalAmount = result.reduce((total, item) => total + item.money, 0);
+            const dayTotalAmount = document.getElementById('day-total-amount');
+            dayTotalAmount.textContent = `當日花費: ${totalAmount} 元`;
+        } else {
+            // 如果沒有數據，顯示相應的消息
+            alert('當日無資料');
+
+            // 將總花費設置為 0 元
+            const dayTotalAmount = document.getElementById('day-total-amount');
+            dayTotalAmount.textContent = '當日花費: 0 元';
+        }
+    } catch (error) {
+        console.error('錯誤：', error);
+    }
+}
+        
+
+        async function logout() {
+          try {
+            const response = await fetch('/logout', {
+              method: 'GET',
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert('登出成功');
+              window.location.href = '/';
+            } else {
+              alert('登出失敗');
+            }
+          } catch (error) {
+            console.error('發生錯誤:', error);
+          }
+        }
+    </script>
+
+    <!-- 引入 Bootstrap JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+
+    <!-- 引入 Popper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+
+    <!-- 引入 Bootstrap JavaScript -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+
+</html>
